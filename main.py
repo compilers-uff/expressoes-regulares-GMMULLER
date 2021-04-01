@@ -1,28 +1,30 @@
 from AFNe import *
+from AFN import *
 
 alfabeto_er = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'}
 
-#Gera um AFNe que aceita um termo qualquer
-def gera_afne(termo):
-    aux_func_programa = {
-                            'q0': [(termo, 'qf')]
-                        }
-    afne = AFNe({termo}, {'q0','qf'}, aux_func_programa, 'q0', {'qf'})
-
-    return afne
-
-    # r = vazio => M1 = (vazio, {q0}, delta1, q0, vazio)
-    # r = epsilon => M2 = (vazio, {qf}, delta2, qf, {qf})
-    # r = x => M3 = ({x}, {q0, qf}, delta3, q0, {qf})
-
-
 def erToAFNe(er):
+    #Gera um AFNe que aceita um termo qualquer
+    def gera_afne(termo):
+        aux_func_programa = {
+                                'q0': [(termo, {'qf'})]
+                            }
+        afne = AFNe({termo}, {'q0','qf'}, aux_func_programa, 'q0', {'qf'})
+
+        return afne
+
+        # r = vazio => M1 = (vazio, {q0}, delta1, q0, vazio)
+        # r = epsilon => M2 = (vazio, {qf}, delta2, qf, {qf})
+        # r = x => M3 = ({x}, {q0, qf}, delta3, q0, {qf})
+
     #Concatena um valor (string) qualquer ao final de cada estado de um conjunto de transicoes
     def add_value_transitions(valor, transicoes):
         retorno = []
 
         for transicao in transicoes:
-            retorno.append((transicao[0], transicao[1]+valor))        
+            retorno.append((transicao[0], set(map(lambda elem: elem+valor, transicao[1]))))        
+
+        print(transicoes,retorno)
 
         return retorno
 
@@ -77,17 +79,18 @@ def erToAFNe(er):
 
                 alfabeto = novo_primeiro_termo.alfabeto.union(novo_segundo_termo.alfabeto)
             else:
-                alfabeto = novo_primeiro_termo.alfabeto
+                alfabeto = novo_primeiro_termo.alfabeto.copy()
+
+            # print(novo_primeiro_termo)
+            # print()
+            # print(novo_segundo_termo)
+            # print()
 
             if caracter == '.':
-                print(novo_primeiro_termo)
-                print()
-                print(novo_segundo_termo)
-                print()
                 
                 estados = novo_primeiro_termo.estados.union(novo_segundo_termo.estados)
                 #Adicionando transicao do estado final do primeiro automato para o estado inicial do segundo
-                func_programa = {list(novo_primeiro_termo.estados_finais)[0]:[(None, novo_segundo_termo.estado_inicial)]}
+                func_programa = {list(novo_primeiro_termo.estados_finais)[0]:[(None, {novo_segundo_termo.estado_inicial})]}
                 #Concatenando as funcoes de transicao de ambos os automatos
                 func_programa.update(novo_primeiro_termo.func_programa)
                 func_programa.update(novo_segundo_termo.func_programa)
@@ -101,19 +104,15 @@ def erToAFNe(er):
                 pilha.append(afne_resultante) 
 
             elif caracter == '+':
-                print(novo_primeiro_termo)
-                print()
-                print(novo_segundo_termo)
-                print()
 
                 estados = novo_primeiro_termo.estados.union(novo_segundo_termo.estados)
                 estados.add('q0')
                 estados.add('qf')
 
                 func_programa = {
-                                    'q0': [(None, novo_primeiro_termo.estado_inicial), (None, novo_segundo_termo.estado_inicial)],
-                                    list(novo_primeiro_termo.estados_finais)[0]:[(None,'qf')],
-                                    list(novo_segundo_termo.estados_finais)[0]:[(None,'qf')]
+                                    'q0': [(None, {novo_primeiro_termo.estado_inicial}), (None, {novo_segundo_termo.estado_inicial})],
+                                    list(novo_primeiro_termo.estados_finais)[0]:[(None,{'qf'})],
+                                    list(novo_segundo_termo.estados_finais)[0]:[(None,{'qf'})]
                                 }
                 func_programa.update(novo_primeiro_termo.func_programa)
                 func_programa.update(novo_segundo_termo.func_programa)
@@ -127,18 +126,14 @@ def erToAFNe(er):
                 pilha.append(afne_resultante) 
 
             elif caracter == '*':   
-                print(novo_primeiro_termo)
-                print()
-                print(novo_segundo_termo)
-                print()
                 
                 estados = novo_primeiro_termo.estados
                 estados.add('q0')
                 estados.add('qf')
 
                 func_programa = {
-                                    'q0': [(None, 'qf'), (None, novo_primeiro_termo.estado_inicial)],
-                                    list(novo_primeiro_termo.estados_finais)[0]:[(None, novo_primeiro_termo.estado_inicial), (None, 'qf')],
+                                    'q0': [(None, {'qf'}), (None, {novo_primeiro_termo.estado_inicial})],
+                                    list(novo_primeiro_termo.estados_finais)[0]:[(None, {novo_primeiro_termo.estado_inicial}), (None, {'qf'})],
 
                                 }
                 func_programa.update(novo_primeiro_termo.func_programa)
@@ -156,10 +151,34 @@ def erToAFNe(er):
 
     return pilha.pop()
 
-# afne = AFNe({'a','b'}, {'q0', 'q1', 'q2'}, {'q0': [('a', {'q1'}), ('b', {'q2'})], 'q1': [(None, {'q2'}), (None, {'q0'})]}, 'q0', 'q1')
-# afne = AFNe({'a','b'}, {'q0', 'q1', 'q2'}, {'q0': [(None, {'q1'})], 'q1': [(None, {'q0'})]}, 'q0', 'q1')
-# afne = AFNe({'0','1'}, {'q0', 'q1', 'q2'}, {'q0': [('0', {'q0', 'q1'})], 'q1': [('0', {'q2'}), ('1', {'q0'})]}, 'q0', 'q2')
+def afneToAFD(afne):
 
-# print(afne.funcProgramaEstendida({'q0'}, '00'))
+    alfabeto = afne.alfabeto.copy()
+    estados = afne.estados.copy()
+    func_programa = {}
+    estado_inicial = afne.estado_inicial
+    estados_finais = set()
 
-print(erToAFNe("*(+(a,b))"))
+    for estado in estados:
+        estados_alcancados = afne.fechoVazio(estado)
+
+        #Se ha alguma intercecao
+        if not estados_alcancados.isdisjoint(afne.estados_finais):
+            estados_finais.add(estado)
+
+        #Criando a funcao programa
+        for letra in alfabeto:
+            resultados = afne.funcProgramaEstendida({estado}, letra)
+            if len(resultados) != 0:
+                if estado in func_programa:
+                    func_programa[estado].append((letra, resultados))
+                else:
+                    func_programa[estado] = [(letra, resultados)]
+
+    return AFN(alfabeto, estados, func_programa, estado_inicial, estados_finais)
+
+# print(erToAFNe("*(+(a,b))"))
+
+afne = AFNe({'a', 'b'}, {'q0', 'q1', 'q2'}, {'q0': [(None, {'q1'}), ('a', {'q0'})], 'q1': [(None, {'q2'}), ('b', {'q1'})], 'q2': [('a', {'q2'})]}, 'q0', {'q2'})
+
+print(afneToAFD(afne))

@@ -1,7 +1,7 @@
 class AFNe:
   # alfabeto = {'a', 'b', 'c'}
   # estados = {'q0', 'q1', 'q2'}
-  # func_programa = {'q0': [('a', 'q1'), ('b', 'q2')]}
+  # func_programa = {'q0': [('a', {'q1'}), ('b', {'q2'})]}
   # estado_inicial = 'q0'
   # estados_finais = {'qf'}
   def __init__(self, alfabeto, estados, func_programa, estado_inicial, estados_finais):
@@ -23,6 +23,7 @@ class AFNe:
     else:
       return True
 
+  #estados eh um set
   def funcProgramaEstendida(self, estados, palavra):
     if palavra == None:
       return self.fechoVazioEstendido(estados)
