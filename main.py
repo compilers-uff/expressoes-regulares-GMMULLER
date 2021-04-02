@@ -179,7 +179,7 @@ def afneToAFN(afne):
 
     return AFN(alfabeto, estados, func_programa, estado_inicial, estados_finais)
 
-
+#O algoritmo precisa ser exatamente igual ao do livro? Pode ser igual ao visto em aula?
 def afntoAFD(afn):
 
     def string_to_set(conjunto):
@@ -230,7 +230,6 @@ def afntoAFD(afn):
                 estados_finais.add('q'+str(nome_estado_contador))
 
             if list(estado)[0] == afn.estado_inicial and estado_inicial == None:
-                print(estado, afn.estado_inicial)
                 estado_inicial = 'q'+str(nome_estado_contador)
 
             for t in todas_transicoes:
@@ -272,14 +271,154 @@ def afntoAFD(afn):
 
     return AFD(alfabeto, estados, func_programa, estado_inicial, estados_finais)
 
+#Eu posso considerar que todos os estados do afd jah sao acessiveis? 
+#TODO adicionar isinstance(AFD)
+def afdToAFDmin(afd):
+    
+    # Verifica se ha necessidade e totaliza a funcao de transicao de um afd
+    def totaliza_func_programa(afd):
+        sink_criado = False
+        sink = 'd' 
+
+        while(sink in afd.estados): #Caso jah exista um estado com o nome d entre os estados
+            sink = sink+'d'
+
+        estados_existentes = set()
+        for estado in afd.func_programa:
+            estados_existentes.add(estado)
+            transicoes_existentes = set()
+            for transicao in afd.func_programa[estado]:
+                transicoes_existentes.add(transicao[0])
+            #A funcao eh parcial
+            if transicoes_existentes != afd.alfabeto:
+                if not sink_criado:
+                    sink_criado = True
+                    afd.estados.add(sink)
+                transicoes_a_adicionar = afd.alfabeto - transicoes_existentes
+                for letra in transicoes_a_adicionar:
+                    afd.func_programa[estado].append((letra, {sink}))
+
+        #Estados inexistentes na funcao programa
+        estados_a_adicionar = afd.estados - estados_existentes
+        if len(estados_a_adicionar) > 0:
+            if not sink_criado:
+                sink_criado = True
+                afd.estados.add(sink)
+                estados_a_adicionar.add(sink)
+
+            for estado in estados_a_adicionar:
+                afd.func_programa[estado] = []
+                for letra in afd.alfabeto:
+                    afd.func_programa[estado].append((letra, {sink}))
+
+    #TODO tem problema cada par de estados aparecer mais de uma vez?
+    def gera_tabela(afd):
+        tabela = {}
+        estados = list(afd.estados)
+
+        for estado in estados:
+            tabela[estado] = {}
+            for e in estados:
+                if e != estado: #nao faz sentido testar se um estado e equivalente a ele mesmo
+                    if e in afd.estados_finais and estado not in afd.estados_finais: #marcando estados trivialmente nao equivalentes
+                        tabela[estado][e] = False
+                    elif e not in afd.estados_finais and estado in afd.estados_finais:
+                        tabela[estado][e] = False
+                    else:
+                        tabela[estado][e] = True
+        return tabela
+
+    def processa_tabela(afd, tabela):
+
+        #estados eh um set de tamanho 2
+        def fecha_lista_encabecada(estados, lista, tabela):
+            for elem in lista:
+                if elem[0] == estados: #se a lista eh encabecada pelos estados
+                    for i in range(1,len(elem)):
+                        if tabela[list(elem[i])[0]][list(elem[i])[1]]: #se ainda nao foi marcado (para evitar qualquer loop de dependencia)
+                            tabela[list(elem[i])[0]][list(elem[i])[1]] = False
+                            tabela[list(elem[i])[1]][list(elem[i])[0]] = False
+                            fecha_lista_encabecada(elem, lista, tabela) #fecha a lista encabecada por elem recursivamente
+
+        #estados1 eh um set de tamanho 2 assim como estados2
+        #estados2 sera adicionado numa lista encabecada por estados1
+        def add_lista_encabecada(estados1, estados2, lista, tabela):
+            encabeca = False
+            key = None
+
+            for i,elem in enumerate(lista):
+                if elem[0] == estados1:
+                    encabeca = True
+                    key = i
+
+            if encabeca:
+                lista[key].append(estados2)
+            else:
+                lista.append([estados1,estados2])
+
+        estados = list(afd.estados)
+        listas_dependencias = []
+
+        for estado in estados:
+            for e in estados:
+                if e != estado and tabela[estado][e]: #nao eh a si mesmo e ainda nao foi marcado
+                    for letra in afd.alfabeto:
+                        resultado1 = list(afd.funcProgramaEstendida({estado}, letra))[0]
+                        resultado2 = list(afd.funcProgramaEstendida({e}, letra))[0]
+                        if resultado1 != resultado2:
+                            if not tabela[resultado1][resultado2]:
+                                tabela[estado][e] = False
+                                tabela[e][estado] = False
+                                fecha_lista_encabecada({estado, e}, listas_dependencias, tabela)
+                                break #basta uma condicao se verificar para marcar
+                            else:
+                                add_lista_encabecada({resultado1,resultado2}, {estado,e}, listas_dependencias, tabela)
+
+    #estado nao eh um set
+    def fecho_equivalencia(tabela, estado):
+        retorno = set()
+        retorno.add(estado)
+
+        explorado = []
+        explorar = [estado]
+
+        while len(explorar) > 0:
+            e = explorar.pop(0)
+            explorado.append(e)
+
+            for elem in tabela[e]:
+                if tabela[e][elem]: #se sao equivalentes
+                    retorno.add(elem)
+                    if elem not in explorado:
+                        explorar.append(elem)
+
+        return retorno
+
+    #calcular o feixo de equivalencia para todos os estados da tabela colocando os resultados num array
+    #elimanar as duplicatas
+    #fundir os que sobraram seguindo as regras
+
+    totaliza_func_programa(afd)
+    print(afd)
+    print()
+    tabela = gera_tabela(afd)
+    processa_tabela(afd, tabela)
+    print(tabela)
+    print()
+    print(fecho_equivalencia(tabela, 'q2'))
+
+
 func_programa = {
-                    'q0': [('a', {'q0','q1'}), ('b', {'q0'})],
-                    'q1': [('a', {'q2'})],
-                    'q2': [('a', {'qf'})]
+                    'q0': [('a', {'q2'}), ('b', {'q1'})],
+                    'q1': [('a', {'q1'}), ('b', {'q0'})],
+                    'q2': [('a', {'q4'}), ('b', {'q5'})],
+                    'q3': [('a', {'q5'}), ('b', {'q4'})],
+                    'q4': [('a', {'q3'}), ('b', {'q2'})],
+                    'q5': [('a', {'q2'}), ('b', {'q3'})]
                 }
 
-afn = AFN({'a','b'}, {'q0','q1','q2','qf'}, func_programa, 'q0', {'qf'})
+afd = AFD({'a','b'}, {'q0','q1','q2','q3','q4','q5'}, func_programa, 'q0', {'q4','q5'})
 
-# print(afn.funcProgramaEstendida({'q0'}, "c"))
-print(afntoAFD(afn))
-# set(a.replace('{','').replace('}','').replace(' ','').split(','))
+# print(afd.funcProgramaEstendida({'q0'}, 'baaaaaaab'))
+
+afdToAFDmin(afd)
