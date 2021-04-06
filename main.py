@@ -271,10 +271,14 @@ def afntoAFD(afn):
 
     return AFD(alfabeto, estados, func_programa, estado_inicial, estados_finais)
 
-#Eu posso considerar que todos os estados do afd jah sao acessiveis? 
+#TODO Eu posso considerar que todos os estados do afd jah sao acessiveis? 
 #TODO adicionar isinstance(AFD)
+#TODO criar uma copia do AFD de entrada para nao modifica-lo
 def afdToAFDmin(afd):
     
+    #Fazendo uma copia para nao modificar o objeto original
+    afdmin = AFD(afd.alfabeto.copy(), afd.estados.copy(), afd.func_programa.copy(), afd.estado_inicial, afd.estados_finais.copy())
+
     # Verifica se ha necessidade e totaliza a funcao de transicao de um afd
     def totaliza_func_programa(afd):
         sink_criado = False
@@ -394,19 +398,79 @@ def afdToAFDmin(afd):
 
         return retorno
 
-    #calcular o feixo de equivalencia para todos os estados da tabela colocando os resultados num array
-    #elimanar as duplicatas
-    #fundir os que sobraram seguindo as regras
+    totaliza_func_programa(afdmin)
+    tabela = gera_tabela(afdmin)
+    processa_tabela(afdmin, tabela)
 
-    totaliza_func_programa(afd)
-    print(afd)
-    print()
-    tabela = gera_tabela(afd)
-    processa_tabela(afd, tabela)
-    print(tabela)
-    print()
-    print(fecho_equivalencia(tabela, 'q2'))
+    conjuntos_resultantes = []
+    estados_unificados = []
 
+    #Descobrindo quais estados sao equivalentes
+    for estado in tabela:
+        explorado = False #marca se o estado jah foi explorado
+        for cr in conjuntos_resultantes:
+            if estado in cr:
+                explorado = True
+                break
+            
+        if not explorado:
+            conjuntos_resultantes.append(fecho_equivalencia(tabela, estado))
+
+    for i in range(len(conjuntos_resultantes)):
+        estados_unificados.append('q'+str(i))
+
+    afdmin.estados = set(estados_unificados)
+
+    func_programa_resultante = {}
+    todas_transicoes = []
+
+    #transformando transicoes numa lista de listas [inicio, letra, destino]
+    for estado in afdmin.func_programa:
+        for transicao in afdmin.func_programa[estado]:
+            todas_transicoes.append([estado, transicao[0], transicao[1]])
+
+    #convertendo os estados das transicoes nos estados unificados
+    for transicao in todas_transicoes:
+        inicio = transicao[0]
+        inicio_traduzido = None
+        destino = list(transicao[2])[0]
+        destino_traduzido = None
+
+        for index,conjunto in enumerate(conjuntos_resultantes):
+            if inicio in conjunto:
+                inicio_traduzido = estados_unificados[index]
+
+            if destino in conjunto:
+                destino_traduzido = estados_unificados[index]
+
+        transicao[0] = inicio_traduzido
+        transicao[2] = {destino_traduzido}
+
+    #remontando a funcao programa resultante da minimizacao
+    for transicao in todas_transicoes:
+        if transicao[0] not in func_programa_resultante:
+            func_programa_resultante[transicao[0]] = []
+
+        if (transicao[1], transicao[2]) not in func_programa_resultante[transicao[0]]: #se eh uma transicao nova
+            func_programa_resultante[transicao[0]].append((transicao[1], transicao[2]))
+
+    estados_finais_resultante = set()
+    estado_inicial_resultante = None
+
+    #decidindo quais estados sao finais e o estado inicial
+    for index,conjunto in enumerate(conjuntos_resultantes):
+        for estado in conjunto:
+            if estado in afdmin.estados_finais:
+                estados_finais_resultante.add(estados_unificados[index])
+            
+            if estado == afdmin.estado_inicial:
+                estado_inicial_resultante = estados_unificados[index]
+
+    afdmin.estado_inicial = estado_inicial_resultante
+    afdmin.estados_finais = estados_finais_resultante
+    afdmin.func_programa = func_programa_resultante
+
+    print(afdmin)
 
 func_programa = {
                     'q0': [('a', {'q2'}), ('b', {'q1'})],
@@ -422,3 +486,5 @@ afd = AFD({'a','b'}, {'q0','q1','q2','q3','q4','q5'}, func_programa, 'q0', {'q4'
 # print(afd.funcProgramaEstendida({'q0'}, 'baaaaaaab'))
 
 afdToAFDmin(afd)
+
+# print(afneToAFN(erToAFNe('.(a,b)')))
