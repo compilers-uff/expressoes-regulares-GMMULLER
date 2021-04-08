@@ -21,12 +21,13 @@ class AFD:
     def __str__(self):
         return "alfabeto: "+str(self.alfabeto)+"\n"+"estados: "+str(self.estados)+"\n"+"func_programa: "+str(self.func_programa)+"\n"+"estado_inicial: "+str(self.estado_inicial)+"\n"+"estados_finais: "+str(self.estados_finais)
 
+    #TODO renomear funcao para delta*
     #estado eh um set de tamanho 1 
     def funcProgramaEstendida(self, estado, palavra):
         if list(estado)[0] not in self.estados:
             raise Exception("Estado inexistente")
 
-        if palavra == None:
+        if palavra == None or palavra == '':
             return estado
 
         if list(estado)[0] not in self.func_programa:
@@ -48,3 +49,12 @@ class AFD:
                 resultado = transicao[1]
 
         return self.funcProgramaEstendida(resultado, w)
+
+    def accepted(self,w):
+        
+        estado_alcancado = self.funcProgramaEstendida({self.estado_inicial}, w) 
+
+        if estado_alcancado and not estado_alcancado.isdisjoint(self.estados_finais):
+            return True
+        
+        return False

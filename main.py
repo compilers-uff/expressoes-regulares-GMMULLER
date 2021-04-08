@@ -1,3 +1,4 @@
+import sys
 from AFNe import *
 from AFN import *
 from AFD import *
@@ -14,9 +15,9 @@ def erToAFNe(er):
 
         return afne
 
-        # r = vazio => M1 = (vazio, {q0}, delta1, q0, vazio)
-        # r = epsilon => M2 = (vazio, {qf}, delta2, qf, {qf})
-        # r = x => M3 = ({x}, {q0, qf}, delta3, q0, {qf})
+        #TODO r = vazio => M1 = (vazio, {q0}, delta1, q0, vazio)
+        #TODO r = epsilon => M2 = (vazio, {qf}, delta2, qf, {qf})
+        #TODO r = x => M3 = ({x}, {q0, qf}, delta3, q0, {qf})
 
     #Concatena um valor (string) qualquer ao final de cada estado de um conjunto de transicoes
     def add_value_transitions(valor, transicoes):
@@ -24,8 +25,6 @@ def erToAFNe(er):
 
         for transicao in transicoes:
             retorno.append((transicao[0], set(map(lambda elem: elem+valor, transicao[1]))))        
-
-        print(transicoes,retorno)
 
         return retorno
 
@@ -50,9 +49,12 @@ def erToAFNe(er):
     
     pilha = []
 
-    for caracter in er:
+    # for caracter in er:
+    while len(er) > 0:
+        # er = er[1:]
+        caracter = er[0]
         er = er[1:]
-        
+
         if caracter not in alfabeto_er:
 
             primeiro_termo = pilha.pop()
@@ -81,11 +83,6 @@ def erToAFNe(er):
                 alfabeto = novo_primeiro_termo.alfabeto.union(novo_segundo_termo.alfabeto)
             else:
                 alfabeto = novo_primeiro_termo.alfabeto.copy()
-
-            # print(novo_primeiro_termo)
-            # print()
-            # print(novo_segundo_termo)
-            # print()
 
             if caracter == '.':
                 
@@ -150,7 +147,15 @@ def erToAFNe(er):
         else:
             pilha.append(caracter)
 
-    return pilha.pop()
+    ultimo_elemento = pilha.pop()
+
+    if ultimo_elemento in {'*','.','+'}:
+        raise Exception("Notacao errada para ER")
+
+    if ultimo_elemento in alfabeto_er:
+        ultimo_elemento = gera_afne(ultimo_elemento)
+
+    return ultimo_elemento
 
 #Acho que o nome dessa funcao estah errado no enunciado
 def afneToAFN(afne):
@@ -249,7 +254,6 @@ def afntoAFD(afn):
                     estados_finais.add('q'+str(nome_estado_contador))
 
                 if list(destino)[0] == afn.estado_inicial and estado_inicial == None:
-                    print(list(destino)[0], afn.estado_inicial)
                     estado_inicial = 'q'+str(nome_estado_contador)
 
                 for t in todas_transicoes:
@@ -470,21 +474,53 @@ def afdToAFDmin(afd):
     afdmin.estados_finais = estados_finais_resultante
     afdmin.func_programa = func_programa_resultante
 
-    print(afdmin)
+    return afdmin
 
-func_programa = {
-                    'q0': [('a', {'q2'}), ('b', {'q1'})],
-                    'q1': [('a', {'q1'}), ('b', {'q0'})],
-                    'q2': [('a', {'q4'}), ('b', {'q5'})],
-                    'q3': [('a', {'q5'}), ('b', {'q4'})],
-                    'q4': [('a', {'q3'}), ('b', {'q2'})],
-                    'q5': [('a', {'q2'}), ('b', {'q3'})]
-                }
+def match(er, w):
 
-afd = AFD({'a','b'}, {'q0','q1','q2','q3','q4','q5'}, func_programa, 'q0', {'q4','q5'})
+    return afdToAFDmin(afntoAFD(afneToAFN(erToAFNe(er)))).accepted(w)
 
-# print(afd.funcProgramaEstendida({'q0'}, 'baaaaaaab'))
+# func_programa = {
+#                     'q0': [('a', {'q2'}), ('b', {'q1'})],
+#                     'q1': [('a', {'q1'}), ('b', {'q0'})],
+#                     'q2': [('a', {'q4'}), ('b', {'q5'})],
+#                     'q3': [('a', {'q5'}), ('b', {'q4'})],
+#                     'q4': [('a', {'q3'}), ('b', {'q2'})],
+#                     'q5': [('a', {'q2'}), ('b', {'q3'})]
+#                 }
 
-afdToAFDmin(afd)
+# afd = AFD({'a','b'}, {'q0','q1','q2','q3','q4','q5'}, func_programa, 'q0', {'q0','q4','q5'})
 
-# print(afneToAFN(erToAFNe('.(a,b)')))
+print(sys.argv)
+
+if sys.argv[1] == "-f":
+    arquivo = sys.argv[2]
+    palavra = sys.argv[3]
+else:
+    er = sys.argv[1]
+    palavra = sys.argv[2]
+    retorno = match(er, palavra)
+
+    if retorno:
+        retorno = "OK"
+    else:
+        retorno = "Not OK"
+
+    print("match("+er+","+palavra+") == "+retorno)
+
+# print(match('a','a'))
+# print(match('+(a,b)','a'))
+# print(match('.(a,b)','ab'))
+# print(match('*(+(a,b))','a'))
+# print(match('*(+(a,b))','aaa'))
+# print(match('*(+(a,b))','ab'))
+# print(match('*(+(a,b))','aba'))
+# print(match('*(+(a,b))','abababa'))
+
+# print(match('+(.(+(a,b),c),d)','ac')) #true 
+# print(match('+(.(+(a,b),c),d)','d')) #true
+# print(match('+(.(+(a,b),c),d)','bc')) #true
+# print(match('+(.(+(a,b),c),d)','a')) #false
+
+
+

@@ -14,6 +14,7 @@ class AFNe:
   def __str__(self):
     return "alfabeto: "+str(self.alfabeto)+"\n"+"estados: "+str(self.estados)+"\n"+"func_programa: "+str(self.func_programa)+"\n"+"estado_inicial: "+str(self.estado_inicial)+"\n"+"estados_finais: "+str(self.estados_finais)
 
+  #mudar nome para accepted
   def aceita(self, palavra):
     
     estados_alcancados = self.funcProgramaEstendida(self.estado_inicial, palavra)
@@ -23,6 +24,7 @@ class AFNe:
     else:
       return True
 
+  #renomear funcao para delta*
   #estados eh um set
   def funcProgramaEstendida(self, estados, palavra):
     if palavra == None:
