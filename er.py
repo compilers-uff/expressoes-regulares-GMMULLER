@@ -274,12 +274,34 @@ def afntoAFD(afn):
     return AFD(alfabeto, estados, func_programa, estado_inicial, estados_finais)
 
 #TODO Eu posso considerar que todos os estados do afd jah sao acessiveis? 
-#TODO adicionar isinstance(AFD)
 #TODO criar uma copia do AFD de entrada para nao modifica-lo
 def afdToAFDmin(afd):
-    
-    #Fazendo uma copia para nao modificar o objeto original
-    afdmin = AFD(afd.alfabeto.copy(), afd.estados.copy(), afd.func_programa.copy(), afd.estado_inicial, afd.estados_finais.copy())
+
+    def remove_estados_inacessiveis(afd):
+
+        visitados = set()
+        visitar = [afd.estado_inicial]
+
+        #Realizando uma busca em largura para definir os estados inacessiveis
+        while len(visitar) > 0:
+            estado_atual = visitar.pop(0)
+            visitados.add(estado_atual)
+
+            if estado_atual in afd.func_programa:
+                for transicao in afd.func_programa[estado_atual]:
+                    if list(transicao[1])[0] not in visitados:
+                        visitar.append(list(transicao[1])[0])
+
+        estados_inacessiveis = afd.estados - visitados
+
+        afd.estados = afd.estados - estados_inacessiveis
+
+        afd.estados_finais = afd.estados_finais - estados_inacessiveis
+
+        #Removendo os estados inacessiveis da funcao programa
+        for estado in estados_inacessiveis:
+            if estado in afd.func_programa:
+                del afd.func_programa[estado]
 
     # Verifica se ha necessidade e totaliza a funcao de transicao de um afd
     def totaliza_func_programa(afd):
@@ -400,6 +422,60 @@ def afdToAFDmin(afd):
 
         return retorno
 
+    def remove_estados_inuteis(afd):
+
+        estados_inuteis = set()
+
+        for estado in afd.estados:
+            visitados = set()
+            visitar = [estado]
+
+            #Realizando uma busca em largura para definir os estados inuteis
+            while len(visitar) > 0:
+                estado_atual = visitar.pop(0)
+                visitados.add(estado_atual)
+
+                if estado_atual in afd.func_programa:
+                    for transicao in afd.func_programa[estado_atual]:
+                        if list(transicao[1])[0] not in visitados:
+                            visitar.append(list(transicao[1])[0])
+
+            if visitados.isdisjoint(afd.estados_finais):
+                estados_inuteis.add(estado)
+
+        afd.estados = afd.estados - estados_inuteis
+
+        afd.estados_finais = afd.estados_finais - estados_inuteis
+
+        #Removendo os estados inuteis da funcao programa
+        for estado in estados_inuteis:
+            if estado in afd.func_programa:
+                del afd.func_programa[estado]
+
+        transicoes_inuteis = []
+        #Removendo as transicoes para estados inuteis
+        for estado in afd.func_programa:
+            novas_transicoes = []
+
+            for transicao in afd.func_programa[estado]:
+                if list(transicao[1])[0] not in estados_inuteis:
+                    novas_transicoes.append(transicao)
+
+            if len(novas_transicoes) == 0:
+                transicoes_inuteis.append(estado)
+
+            afd.func_programa[estado] = novas_transicoes
+
+        for estado in transicoes_inuteis:
+            del afd.func_programa[estado]
+
+    if not isinstance(afd, AFD):
+        raise Exception("Automato precisa ser deterministico para ser minimizado")
+
+    #Fazendo uma copia para nao modificar o objeto original
+    afdmin = AFD(afd.alfabeto.copy(), afd.estados.copy(), afd.func_programa.copy(), afd.estado_inicial, afd.estados_finais.copy())
+
+    remove_estados_inacessiveis(afdmin)
     totaliza_func_programa(afdmin)
     tabela = gera_tabela(afdmin)
     processa_tabela(afdmin, tabela)
@@ -472,60 +548,64 @@ def afdToAFDmin(afd):
     afdmin.estados_finais = estados_finais_resultante
     afdmin.func_programa = func_programa_resultante
 
+    remove_estados_inuteis(afdmin)
+
     return afdmin
 
 def match(er, w):
 
-    return afdToAFDmin(afntoAFD(afneToAFN(erToAFNe(er)))).accepted(w)
+    # return afdToAFDmin(afntoAFD(afneToAFN(erToAFNe(er)))).accepted(w)
+    return afdToAFDmin(afntoAFD(afneToAFN(erToAFNe(er))))
 
-# func_programa = {
-#                     'q0': [('a', {'q2'}), ('b', {'q1'})],
-#                     'q1': [('a', {'q1'}), ('b', {'q0'})],
-#                     'q2': [('a', {'q4'}), ('b', {'q5'})],
-#                     'q3': [('a', {'q5'}), ('b', {'q4'})],
-#                     'q4': [('a', {'q3'}), ('b', {'q2'})],
-#                     'q5': [('a', {'q2'}), ('b', {'q3'})]
-#                 }
+func_programa = {
+                    'q0': [('a', {'q2'}), ('b', {'q1'}), ('c', {'d'})],
+                    'q1': [('a', {'q1'}), ('b', {'q0'}), ('c', {'d'})],
+                    'q2': [('a', {'q4'}), ('b', {'q5'}), ('c', {'d'})],
+                    'q3': [('a', {'q5'}), ('b', {'q4'}), ('c', {'d'})],
+                    'q4': [('a', {'q3'}), ('b', {'q2'}), ('c', {'d'})],
+                    'q5': [('a', {'q2'}), ('b', {'q3'}), ('c', {'d'})],
+                    'd': [('a', {'d'}), ('b', {'d'}), ('c', {'d'})]
+                }
 
-# afd = AFD({'a','b'}, {'q0','q1','q2','q3','q4','q5'}, func_programa, 'q0', {'q0','q4','q5'})
+afd = AFD({'a','b','c'}, {'q0','q1','q2','q3','q4','q5','d'}, func_programa, 'q0', {'q0','q4','q5'})
 
-if sys.argv[1] == "-f":
-    arquivo = sys.argv[2]
-    palavra = sys.argv[3]
+# if sys.argv[1] == "-f":
+#     arquivo = sys.argv[2]
+#     palavra = sys.argv[3]
 
-    with open(arquivo) as file:
+#     with open(arquivo) as file:
 
-        er = file.readline()
+#         er = file.readline()
 
-        while er:
+#         while er:
 
-            er = er.replace('\n','')
+#             er = er.replace('\n','')
 
-            retorno = match(er, palavra)
+#             retorno = match(er, palavra)
 
-            if retorno:
-                retorno = "OK"
-            else:
-                retorno = "Not OK"
+#             if retorno:
+#                 retorno = "OK"
+#             else:
+#                 retorno = "Not OK"
 
-            print("match("+er+","+palavra+") == "+retorno)
+#             print("match("+er+","+palavra+") == "+retorno)
 
-            er = file.readline()
+#             er = file.readline()
 
-else:
-    er = sys.argv[1]
-    palavra = sys.argv[2]
-    retorno = match(er, palavra)
+# else:
+#     er = sys.argv[1]
+#     palavra = sys.argv[2]
+#     retorno = match(er, palavra)
 
-    if retorno:
-        retorno = "OK"
-    else:
-        retorno = "Not OK"
+#     if retorno:
+#         retorno = "OK"
+#     else:
+#         retorno = "Not OK"
 
-    print("match("+er+","+palavra+") == "+retorno)
+#     print("match("+er+","+palavra+") == "+retorno)
 
 # print(match('a','a'))
-# print(match('+(a,b)','a'))
+print(match('+(a,b)','a'))
 # print(match('.(a,b)','ab'))
 # print(match('*(+(a,b))','a'))
 # print(match('*(+(a,b))','aaa'))
