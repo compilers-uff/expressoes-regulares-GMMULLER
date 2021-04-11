@@ -1,10 +1,12 @@
 class AFD:
-    #alfabeto = {'a', 'b', 'c'}
-    # estados = {'q0', 'q1', 'q2'}
-    # func_programa = {'q0': [('a', {'q1'}), ('b', {'q2'})]}
-    # estado_inicial = 'q0'
-    # estados_finais = {'qf'}
-    # precisa adicionar coerencia interna, isto eh os estados presentes na func_programa devem aparecer em estados?
+
+    '''
+        @param set    alfabeto
+        @param set    estados
+        @param dict   func_programa Exemplo: {'q0': [('a', {'q1'}), ('b', {'q2'})]}.
+        @param string estado_inicial
+        @param set    estados_finais
+    '''
     def __init__(self, alfabeto, estados, func_programa, estado_inicial, estados_finais):
 
         for key,value in enumerate(func_programa):
@@ -21,9 +23,12 @@ class AFD:
     def __str__(self):
         return "alfabeto: "+str(self.alfabeto)+"\n"+"estados: "+str(self.estados)+"\n"+"func_programa: "+str(self.func_programa)+"\n"+"estado_inicial: "+str(self.estado_inicial)+"\n"+"estados_finais: "+str(self.estados_finais)
 
-    #TODO renomear funcao para delta*
-    #estado eh um set de tamanho 1 
-    def funcProgramaEstendida(self, estado, palavra):
+    '''
+        @param set    estado  Conjunto de tamanho 1
+        @param string palavra 
+    '''
+    def deltaEstrela(self, estado, palavra):
+
         if list(estado)[0] not in self.estados:
             raise Exception("Estado inexistente")
 
@@ -48,11 +53,20 @@ class AFD:
             if transicao[0] == a:
                 resultado = transicao[1]
 
-        return self.funcProgramaEstendida(resultado, w)
+        #Caso a funcao esteja parcialmente definida para o simbolo e o estado atual
+        if resultado == None:
+            return None
 
+        return self.deltaEstrela(resultado, w)
+
+    '''
+        Retorna False ou True dado uma palavra de acordo com sua aceitacao pelo automato.
+
+        @param string w
+    '''
     def accepted(self,w):
         
-        estado_alcancado = self.funcProgramaEstendida({self.estado_inicial}, w) 
+        estado_alcancado = self.deltaEstrela({self.estado_inicial}, w) 
 
         if estado_alcancado and not estado_alcancado.isdisjoint(self.estados_finais):
             return True

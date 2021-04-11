@@ -52,4 +52,8 @@ class AFN:
                     if transicao[0] == a:
                         resultado = resultado.union(transicao[1])
 
+        #Caso a funcao de transicao for parcialmente definida
+        if len(resultado) == 0:
+            return resultado
+
         return self.deltaEstrela(resultado, w)
