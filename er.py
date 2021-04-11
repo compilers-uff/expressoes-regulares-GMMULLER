@@ -49,9 +49,7 @@ def erToAFNe(er):
     
     pilha = []
 
-    # for caracter in er:
     while len(er) > 0:
-        # er = er[1:]
         caracter = er[0]
         er = er[1:]
 
@@ -491,11 +489,29 @@ def match(er, w):
 
 # afd = AFD({'a','b'}, {'q0','q1','q2','q3','q4','q5'}, func_programa, 'q0', {'q0','q4','q5'})
 
-print(sys.argv)
-
 if sys.argv[1] == "-f":
     arquivo = sys.argv[2]
     palavra = sys.argv[3]
+
+    with open(arquivo) as file:
+
+        er = file.readline()
+
+        while er:
+
+            er = er.replace('\n','')
+
+            retorno = match(er, palavra)
+
+            if retorno:
+                retorno = "OK"
+            else:
+                retorno = "Not OK"
+
+            print("match("+er+","+palavra+") == "+retorno)
+
+            er = file.readline()
+
 else:
     er = sys.argv[1]
     palavra = sys.argv[2]
@@ -517,6 +533,7 @@ else:
 # print(match('*(+(a,b))','aba'))
 # print(match('*(+(a,b))','abababa'))
 
+# arthur
 # print(match('+(.(+(a,b),c),d)','ac')) #true 
 # print(match('+(.(+(a,b),c),d)','d')) #true
 # print(match('+(.(+(a,b),c),d)','bc')) #true
