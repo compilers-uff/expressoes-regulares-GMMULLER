@@ -2,6 +2,8 @@ import sys
 
 from funcoes_conversao import *
 
+#OBS: None representa epsilon.
+
 if sys.argv[1] == "-f":
     arquivo = sys.argv[2]
     palavra = sys.argv[3]

@@ -62,7 +62,7 @@ def erToAFNe(er):
         return AFNe(afne.alfabeto, estados, func_programa, estado_inicial, estados_finais)
 
     #Tratando a string de entrada
-    er = er.replace(' ','').replace('(','').replace(')','').replace(',','')[::-1]
+    er = er.replace(' ','').replace('(','').replace(')','').replace(',','').replace('\'', '').replace('\"', '')[::-1]
     
     pilha = []
 
@@ -618,5 +618,12 @@ def afdToAFDmin(afd):
     @param string w
 '''
 def match(er, w):
+
+    if(er == ''):
+        return False
+
+    #None representa epsilon
+    if(er == None):
+        return True
 
     return afdToAFDmin(afnToAFD(afneToAFN(erToAFNe(er)))).accepted(w)

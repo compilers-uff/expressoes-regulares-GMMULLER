@@ -101,3 +101,28 @@ class TestER:
     def test_match_25(self):
 
         assert match('.(+(+(+(+(a,b),c),d),e), +(+(+(+(a,b),c),d),e))', 'ae')
+
+    def test_match_26(self):
+
+        assert match('.(*(+(*(.(a,b)),c)), +(*(.(a,b)),c))', 'cccccabab')
+
+    def test_match_27(self):
+
+        assert not match('.(*(+(*(.(a,b)),c)), +(*(.(a,b)),c))', 'cccccbaab')
+
+    def test_match_28(self):
+
+        assert match('*(*(a))', '')
+
+    def test_match_29(self):
+
+        assert match('*(*(*(a)))', 'aaaaa')
+
+    def test_match_30(self):
+
+        #None representa epsilon
+        assert match(None, 'aaaaa')
+
+    def test_match_31(self):
+
+        assert not match('', 'aaaaa')
